@@ -43,53 +43,55 @@ if neighborhood != 'All':
     df_filtered = df_filtered[df_filtered['neighbourhood_cleansed'] == neighborhood]
 
 # Title
-st.title("Tokyo Airbnb Dashboard")
-st.write("Explore Tokyo's Airbnb listings by filtering by room type, price, score, and neighborhood.")
+st.title("Tokyo Airbnb Dashboard (Creative Edition)")
+st.write("Explore Tokyo Airbnb listings with enhanced visuals and filters.")
 st.write(f"🔍 **Filtered Listings:** {len(df_filtered)}")
-
-# Optional debug table
-# st.dataframe(df_filtered)
 
 if df_filtered.empty:
     st.warning("⚠️ No listings match your current filter settings. Try broadening your selection.")
 else:
-    # Chart 1: Count of listings by room type and neighborhood
-    room_bar = alt.Chart(df_filtered).mark_bar().encode(
-        x=alt.X('count():Q', title='Number of Listings'),
-        y=alt.Y('neighbourhood_cleansed:N', sort='-x', title='Neighborhood'),
-        color='room_type:N',
-        tooltip=['room_type:N', 'count():Q']
+    # BOX PLOT: Price distribution by room type (horizontal)
+    boxplot = alt.Chart(df_filtered).mark_boxplot(extent='min-max').encode(
+        y=alt.Y('room_type:N', title='Room Type'),
+        x=alt.X('price:Q', title='Price (¥)', scale=alt.Scale(domain=[0, df_filtered['price'].quantile(0.95)])),
+        color='room_type:N'
     ).properties(
-        width=600,
+        width=700,
         height=300,
-        title="Listings by Room Type and Neighborhood"
+        title="Price Distribution by Room Type (Boxplot)"
     )
 
-    # Chart 2: Scatterplot of Price vs. Review Score
-    scatter1 = alt.Chart(df_filtered).mark_circle(size=60).encode(
+    # Only show boxplot if enough data
+    if df_filtered['room_type'].nunique() < 1 or df_filtered.groupby('room_type').size().min() < 2:
+        st.warning("⚠️ Not enough data to render the boxplot with current filters.")
+    else:
+        st.altair_chart(boxplot, use_container_width=True)
+
+    # BAR CHART: Avg review score by neighborhood
+    bar_height = 25
+    num_neighborhoods = df_filtered['neighbourhood_cleansed'].nunique()
+
+    review_bar = alt.Chart(df_filtered).mark_bar().encode(
+        x=alt.X('mean(review_scores_rating):Q', title='Avg. Review Score'),
+        y=alt.Y('neighbourhood_cleansed:N', sort='-x', title='Neighborhood'),
+        color=alt.Color('neighbourhood_cleansed:N', legend=None),
+        tooltip=['neighbourhood_cleansed:N', 'mean(review_scores_rating):Q']
+    ).properties(
+        width=700,
+        height=max(300, num_neighborhoods * bar_height),
+        title='Average Review Score by Neighborhood'
+    )
+    st.altair_chart(review_bar, use_container_width=True)
+
+    # SCATTERPLOT: Price vs. Review Score
+    scatter = alt.Chart(df_filtered).mark_circle(size=60).encode(
         x=alt.X('review_scores_rating:Q', title='Review Score'),
         y=alt.Y('price:Q', title='Price (¥)'),
         color='room_type:N',
         tooltip=['name:N', 'price:Q', 'review_scores_rating:Q', 'room_type:N']
     ).interactive().properties(
-        width=600,
+        width=700,
         height=300,
         title="Price vs. Review Score"
     )
-
-    # Chart 3: Scatterplot of Accommodates vs. Price
-    scatter2 = alt.Chart(df_filtered).mark_circle(size=60).encode(
-        x=alt.X('accommodates:Q', title='Accommodates'),
-        y=alt.Y('price:Q', title='Price (¥)'),
-        color='room_type:N',
-        tooltip=['name:N', 'price:Q', 'accommodates:Q', 'room_type:N']
-    ).interactive().properties(
-        width=600,
-        height=300,
-        title="Price vs. Accommodates"
-    )
-
-    # Display charts
-    st.altair_chart(room_bar, use_container_width=True)
-    st.altair_chart(scatter1, use_container_width=True)
-    st.altair_chart(scatter2, use_container_width=True)
+    st.altair_chart(scatter, use_container_width=True)
