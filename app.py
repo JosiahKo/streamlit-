@@ -43,7 +43,7 @@ if neighborhood != 'All':
     df_filtered = df_filtered[df_filtered['neighbourhood_cleansed'] == neighborhood]
 
 # Title
-st.title("Tokyo Airbnb Dashboard (Creative Edition)")
+st.title("Tokyo Airbnb Dashboard")
 st.write("Explore Tokyo Airbnb listings with enhanced visuals and filters.")
 st.write(f"🔍 **Filtered Listings:** {len(df_filtered)}")
 
